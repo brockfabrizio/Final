@@ -1,182 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Rock Paper Scissors - First to 5</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golfy Glide</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      text-align: center;
-      background: linear-gradient(135deg, #6e7c7c, #f4f4f4);
-      color: #333;
-      padding: 50px;
       margin: 0;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      color: #fff;
-      font-size: 3em;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    p {
-      color: #fff;
-      font-size: 1.5em;
-    }
-
-    .buttons {
-      margin: 30px 0;
+      background: #70c5ce;
+      font-family: sans-serif;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      height: 100vh;
+      box-sizing: border-box;
     }
-
-    button {
-      padding: 15px 30px;
-      margin: 10px;
+    canvas {
+      border: 2px solid #000;
+      background: #fff;
+      display: block;
+    }
+    #score {
       font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      background-color: #4CAF50;
-      color: white;
-      transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    button:hover {
-      background-color: #45a049;
-      transform: scale(1.1);
-      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    button:active {
-      transform: scale(1.05);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .result, .scoreboard, .selections, .final {
-      margin-top: 20px;
-      font-size: 22px;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .final {
-      font-size: 28px;
-      color: #d32f2f;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    #playAgain button {
-      background-color: #2196F3;
-      color: white;
-    }
-
-    #playAgain button:hover {
-      background-color: #1976D2;
-    }
-
-    .scoreboard {
-      font-size: 24px;
-      margin: 15px 0;
-    }
-
-    .selections {
-      font-size: 18px;
-      color: #fff;
       margin-top: 10px;
+      color: #333;
     }
-
-    footer {
-      margin-top: 30px;
-      color: #fff;
+    #restart {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+    }
+    #startMsg {
+      margin-top: 10px;
       font-size: 16px;
+      color: #222;
     }
-
-    footer a {
-      color: #2196F3;
+    #navigation {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    #navigation a {
+      margin: 0 8px;
       text-decoration: none;
+      color: #333;
       font-weight: bold;
+      background-color: #4caf50;
+      padding: 8px 12px;
+      border-radius: 5px;
     }
-
-    footer a:hover {
-      color: #1976D2;
+    #navigation a:hover {
+      background-color: #45a049;
     }
   </style>
 </head>
 <body>
-  <h1>Rock, Paper, Scissors</h1>
-  <p>First to 5 wins!</p>
+  <h1>Golfy Glide</h1>
+  <div id="score">Score: 0</div>
+  <div id="startMsg">Press Space to Start</div>
+  <canvas id="gameCanvas" width="300" height="450"></canvas>
+  <button id="restart" onclick="startGame()">Restart</button>
 
-  <div class="buttons">
-    <button onclick="play('rock')">Rock</button>
-    <button onclick="play('paper')">Paper</button>
-    <button onclick="play('scissors')">Scissors</button>
+  <div id="navigation">
+    <a href="index.html">Back to Scratch Page</a>
+    <a href="resume.html">Go to Resume</a>
   </div>
-
-  <div class="selections" id="selections"></div>
-  <div class="result" id="result"></div>
-  <div class="scoreboard" id="scoreboard">You: 0 | Computer: 0</div>
-  <div class="final" id="finalMessage"></div>
-
-  <div id="playAgain" style="display: none;">
-    <button onclick="resetGame()">Play Again</button>
-  </div>
-
-  <footer>
-    <p><a href="index.html">Back to Golf Page</a></p>
-    <p><a href="resume.html">Back to Resume</a></p>
-  </footer>
 
   <script>
-    let playerScore = 0;
-    let computerScore = 0;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startMsg = document.getElementById("startMsg");
+    let gameInterval;
 
-    function play(playerChoice) {
-      if (playerScore >= 5 || computerScore >= 5) return;
+    const gravity = 0.5;
+    const jump = -8;
+    const pipeWidth = 40;
+    const gap = 100;
 
-      const choices = ['rock', 'paper', 'scissors'];
-      const computerChoice = choices[Math.floor(Math.random() * 3)];
+    let bird, pipes, score, gameOver, gameStarted = false;
+    let pipeSpeed = 1.5; // Slower initial speed
 
-      document.getElementById('selections').textContent = `You chose ${playerChoice}, computer chose ${computerChoice}.`;
+    document.addEventListener("keydown", (e) => {
+      if (e.code === 'Space') {
+        if (!gameStarted) {
+          gameStarted = true;
+          startMsg.style.display = "none";
+          startGame();
+        } else if (!gameOver) {
+          bird.velocity = jump;
+        }
+      }
+    });
 
-      let winner = '';
+    function resetGame() {
+      bird = { x: 60, y: 150, velocity: 0, radius: 8, trail: [] }; // Adding trail to bird
+      pipes = [];
+      score = 0;
+      gameOver = false;
+      pipeSpeed = 1.5; // Reset pipe speed to slow value
+      document.getElementById("score").innerText = "Score: 0";
+      document.getElementById("restart").style.display = "none";
+    }
 
-      if (playerChoice === computerChoice) {
-        winner = "It's a tie!";
-      } else if (
-        (playerChoice === 'rock' && computerChoice === 'scissors') ||
-        (playerChoice === 'paper' && computerChoice === 'rock') ||
-        (playerChoice === 'scissors' && computerChoice === 'paper')
-      ) {
-        playerScore++;
-        winner = "You win this round!";
-      } else {
-        computerScore++;
-        winner = "Computer wins this round!";
+    function drawBird() {
+      ctx.beginPath();
+      ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+
+      // Add a simple consistent trail behind the bird
+      bird.trail.push({ x: bird.x, y: bird.y });
+      if (bird.trail.length > 8) bird.trail.shift(); // Limit trail length
+
+      // Draw the trail as a simple line connecting the bird's last positions
+      ctx.beginPath();
+      ctx.moveTo(bird.trail[0].x, bird.trail[0].y);
+      bird.trail.forEach(dot => {
+        ctx.lineTo(dot.x, dot.y);
+      });
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    function drawPipes() {
+      ctx.fillStyle = "green";
+      pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+        ctx.fillRect(pipe.x, pipe.top + gap, pipeWidth, canvas.height);
+      });
+    }
+
+    function updatePipes() {
+      if (gameOver) return;
+
+      if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 150) {
+        const top = Math.random() * (canvas.height - gap - 50) + 20;
+        pipes.push({ x: canvas.width, top });
       }
 
-      document.getElementById('result').textContent = winner;
-      document.getElementById('scoreboard').textContent = `You: ${playerScore} | Computer: ${computerScore}`;
+      pipes.forEach(pipe => pipe.x -= pipeSpeed);
 
-      if (playerScore === 5 || computerScore === 5) {
-        document.getElementById('finalMessage').textContent =
-          playerScore === 5 ? "🎉 You are the champion!" : "💻 Computer wins the game!";
-        document.getElementById('playAgain').style.display = 'block';
+      pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+    }
+
+    function detectCollision() {
+      for (const pipe of pipes) {
+        if (
+          bird.x + bird.radius > pipe.x &&
+          bird.x - bird.radius < pipe.x + pipeWidth &&
+          (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.top + gap)
+        ) {
+          gameOver = true;
+          return;
+        }
+      }
+      if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {
+        gameOver = true;
       }
     }
 
-    function resetGame() {
-      playerScore = 0;
-      computerScore = 0;
-      document.getElementById('selections').textContent = '';
-      document.getElementById('result').textContent = '';
-      document.getElementById('scoreboard').textContent = `You: 0 | Computer: 0`;
-      document.getElementById('finalMessage').textContent = '';
-      document.getElementById('playAgain').style.display = 'none';
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      bird.velocity += gravity;
+      bird.y += bird.velocity;
+
+      drawBird();
+      updatePipes();
+      drawPipes();
+      detectCollision();
+
+      pipes.forEach(pipe => {
+        if (!pipe.passed && bird.x > pipe.x + pipeWidth) {
+          pipe.passed = true;
+          score++;
+          document.getElementById("score").innerText = `Score: ${score}`;
+        }
+      });
+
+      if (gameOver) {
+        clearInterval(gameInterval);
+        document.getElementById("restart").style.display = "inline-block";
+      }
+    }
+
+    function startGame() {
+      resetGame();
+      gameInterval = setInterval(updateGame, 1000 / 60);
     }
   </script>
 </body>
